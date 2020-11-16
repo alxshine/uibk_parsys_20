@@ -1,6 +1,6 @@
 #!/bin/bash
 
-GH_USER= # your user here
+GH_USER=alxshine
 ROOT=$(cd .. && pwd) # alternatively hard-code this path
 
 docker run --rm -it --name=mpi \

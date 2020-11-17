@@ -1,0 +1,8 @@
+version: "3.8"
+services:
+  mpi-dev:
+    image: mpi-dev:latest
+    ports:
+      - "2338:22"
+    volumes:
+      - .:/uibk_parsys_20

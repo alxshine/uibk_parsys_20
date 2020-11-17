@@ -4,7 +4,6 @@
 
 FROM ubuntu:20.04
 
-ENV USER mpi
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Europe/Amsterdam
 
@@ -13,13 +12,6 @@ RUN apt-get update -y && \
     apt-get install -y --no-install-recommends wget openssh-server mosh \
     gcc g++ gdb gfortran make valgrind \
     libopenmpi-dev openmpi-bin openmpi-common openmpi-doc binutils
-
-# ------------------------------------------------------------
-# Add an 'mpi' user
-# ------------------------------------------------------------
-
-RUN adduser --disabled-password --gecos "" ${USER} && \
-    echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # ------------------------------------------------------------
 # Set-Up SSH with our Github deploy key
@@ -32,18 +24,25 @@ RUN mkdir /var/run/sshd \
     && sed -ri 's/^PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config \
     && sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
 
+# get necessary keys during build
+ARG github_user
+RUN test -n "$github_user"
+
+ARG SSH=/root/.ssh
+
+RUN mkdir ${SSH}
+RUN chmod 700 ${SSH}
+RUN wget --no-check-certificate "https://github.com/${github_user}.keys" -O ${SSH}/authorized_keys
+RUN chmod 600 ${SSH}/authorized_keys
 
 # ------------------------------------------------------------
 # Configure OpenMPI
 # Taken from https://github.com/oweidner/docker.openmpi
 # ------------------------------------------------------------
 
-USER root
-
 RUN rm -fr ${HOME}/.openmpi && mkdir -p ${HOME}/.openmpi
 ADD default-mca-params.conf ${HOME}/.openmpi/mca-params.conf
 RUN chown -R ${USER}:${USER} ${HOME}/.openmpi
 
-COPY entry_point.sh /bin/entry_point.sh
-CMD entry_point.sh
-EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D"]
+# CMD ["bash"]

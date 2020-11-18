@@ -1,0 +1,11 @@
+#!/bin/bash
+
+#$ -q std.q
+#$ -cwd
+#$ -N stencil
+#$ -o stencil.log
+#$ -j yes
+#$ -pe openmpi-4perhost 4
+
+module load openmpi/3.1.1
+mpirun -n 4 ./mpi

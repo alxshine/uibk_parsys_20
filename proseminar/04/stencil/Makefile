@@ -1,4 +1,4 @@
-flags=-O2
+flags=-O2 -std=c99
 
 all: seq mpi
 

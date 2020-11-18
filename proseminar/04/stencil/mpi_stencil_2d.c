@@ -16,16 +16,21 @@ int main(int argc, char **argv)
     int N = 200;
     if (argc > 1)
         N = atoi(argv[1]);
-    int ranks_per_dim = 2;
+    int multi_thread = 0;
     if (argc > 2)
-        ranks_per_dim = atoi(argv[2]);
+        multi_thread = 1;
     const int S = N * N;
     const int T = 100;
 
     MPI_Status mpi_status;
 
     MPI_Comm cartesian_comm;
-    const int dims[] = {ranks_per_dim, ranks_per_dim};
+    int dims[] = {1, 1};
+    if (multi_thread)
+    {
+        dims[0] = 4;
+        dims[1] = 2;
+    }
     const int periods[] = {0, 0};
     if (MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 1, &cartesian_comm))
     {
@@ -47,21 +52,22 @@ int main(int argc, char **argv)
     Vector B = (Vector)malloc(sizeof(value_t) * S);
 
     // prepare send and receive
-    int chunk_size = N / ranks_per_dim;
-    int my_row = my_rank / ranks_per_dim;
-    int my_col = my_rank % ranks_per_dim;
+    int chunk_size_x = N / 2;
+    int chunk_size_y = N / 4;
+    int my_row = my_rank / 2;
+    int my_col = my_rank % 2;
 
     // sending top and bottom border is easy
     MPI_Datatype top_bottom_type;
-    MPI_Type_vector(1, chunk_size, 1, DATA_TYPE, &top_bottom_type);
+    MPI_Type_vector(1, chunk_size_x, 1, DATA_TYPE, &top_bottom_type);
     MPI_Type_commit(&top_bottom_type);
     // left and right requires strides
     MPI_Datatype left_right_type;
-    MPI_Type_vector(chunk_size, 1, N, DATA_TYPE, &left_right_type);
+    MPI_Type_vector(chunk_size_y, 1, N, DATA_TYPE, &left_right_type);
     MPI_Type_commit(&left_right_type);
     //chunk vector for returning
     MPI_Datatype full_chunk_type;
-    MPI_Type_vector(chunk_size, chunk_size, N, DATA_TYPE, &full_chunk_type);
+    MPI_Type_vector(chunk_size_y, chunk_size_x, N, DATA_TYPE, &full_chunk_type);
     MPI_Type_commit(&full_chunk_type);
 
     for (int i = 0; i < S; ++i)
@@ -82,13 +88,13 @@ int main(int argc, char **argv)
     // }
 
     if (!my_rank)
-        printf("Dims: %d*%d, chunk_size=%d, ranks_per_dim=%d\n\n", N, N, chunk_size, ranks_per_dim);
+        printf("Dims: %d*%d, chunk_size=%dx%d, %d threads\n\n", N, N, chunk_size_y, chunk_size_x, multi_thread ? 8 : 1);
     // printf("%d: nb_up=%d, nb_down=%d, nb_left=%d, nb_right=%d\n", my_rank, nb_up, nb_down, nb_left, nb_right);
 
-    int my_top_row_index = my_row * chunk_size * N + my_col * chunk_size;
-    int my_bottom_row_index = my_top_row_index + (chunk_size - 1) * N;
+    int my_top_row_index = my_row * chunk_size_y * N + my_col * chunk_size_x;
+    int my_bottom_row_index = my_top_row_index + (chunk_size_y - 1) * N;
     int my_left_column_index = my_top_row_index;
-    int my_right_column_index = my_top_row_index + chunk_size - 1;
+    int my_right_column_index = my_top_row_index + chunk_size_x - 1;
 
     int top_nb_index = my_top_row_index - N;
     int down_nb_index = my_bottom_row_index + N;
@@ -173,12 +179,12 @@ int main(int argc, char **argv)
 #pragma endregion
 #pragma endregion
 
-        for (size_t i = my_row * chunk_size; i < (my_row + 1) * chunk_size; ++i)
+        for (size_t i = my_row * chunk_size_y; i < (my_row + 1) * chunk_size_y; ++i)
         {
             size_t y_above = i != 0 ? i - 1 : 0;
             size_t y_below = i != N - 1 ? i + 1 : N - 1;
 
-            for (size_t j = my_col * chunk_size; j < (my_col + 1) * chunk_size; ++j)
+            for (size_t j = my_col * chunk_size_x; j < (my_col + 1) * chunk_size_x; ++j)
             {
                 size_t x_left = j != 0 ? j - 1 : 0;
                 size_t x_right = j != N - 1 ? j + 1 : N - 1;
@@ -217,13 +223,16 @@ int main(int argc, char **argv)
 
     if (!my_rank)
     {
-        for (int i = 1; i < ranks_per_dim * ranks_per_dim; ++i)
+        if (multi_thread)
         {
-            int current_row = i / ranks_per_dim;
-            int current_col = i % ranks_per_dim;
-            int current_start = current_row * chunk_size * N + current_col * chunk_size;
+            for (int i = 1; i < 8; ++i)
+            {
+                int current_row = i / 2;
+                int current_col = i % 2;
+                int current_start = current_row * chunk_size_y * N + current_col * chunk_size_x;
 
-            MPI_Recv(A + current_start, 1, full_chunk_type, i, 0, cartesian_comm, MPI_STATUS_IGNORE);
+                MPI_Recv(A + current_start, 1, full_chunk_type, i, 0, cartesian_comm, MPI_STATUS_IGNORE);
+            }
         }
 
         int success = is_valid(A, N, source_x, source_y);

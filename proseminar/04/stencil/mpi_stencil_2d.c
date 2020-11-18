@@ -20,7 +20,7 @@ int main(int argc, char **argv)
     if (argc > 2)
         ranks_per_dim = atoi(argv[2]);
     const int S = N * N;
-    const int T = 100;
+    const int T = N*50;
 
     MPI_Status mpi_status;
 
@@ -59,6 +59,10 @@ int main(int argc, char **argv)
     MPI_Datatype left_right_type;
     MPI_Type_vector(chunk_size, 1, N, DATA_TYPE, &left_right_type);
     MPI_Type_commit(&left_right_type);
+    //chunk vector for returning
+    MPI_Datatype full_chunk_type;
+    MPI_Type_vector(chunk_size, chunk_size, N, DATA_TYPE, &full_chunk_type);
+    MPI_Type_commit(&full_chunk_type);
 
     for (int i = 0; i < S; ++i)
     {
@@ -136,6 +140,7 @@ int main(int argc, char **argv)
             }
         }
 #pragma endregion
+#pragma region left right
         // send left nb_left exists
         if (nb_left >= 0)
         {
@@ -163,6 +168,7 @@ int main(int argc, char **argv)
                 return 1;
             }
         }
+#pragma endregion
 #pragma endregion
 
         for (size_t i = my_row * chunk_size; i < (my_row + 1) * chunk_size; ++i)
@@ -199,20 +205,39 @@ int main(int argc, char **argv)
         //        }
     }
 
-    free(B);
-
     // printf("Final:\n");
     // printTemperature_2d(A, N);
     // printf("\n");
+    free(B);
 
-    int success = is_valid(A, N, source_x, source_y);
-    printf("%d: Verification: %s\n", my_rank, (success) ? "OK" : "FAILED");
-    printf("\n");
-    // for (int i = 0; i < N; ++i)
-    //     printf("%f\n", A[i]);
+    if (!my_rank)
+    {
+        for (int i = 1; i < ranks_per_dim * ranks_per_dim; ++i)
+        {
+            int current_row = i / ranks_per_dim;
+            int current_col = i % ranks_per_dim;
+            int current_start = current_row * chunk_size * N + current_col * chunk_size;
+
+            MPI_Recv(A+current_start, 1, full_chunk_type, i, 0, cartesian_comm, MPI_STATUS_IGNORE);
+        }
+
+        int success = is_valid(A, N, source_x, source_y);
+        printf("%d: Verification: %s\n", my_rank, (success) ? "OK" : "FAILED");
+        printf("\n");
+        printTemperature_2d(A, N);
+        // for (int i = 0; i < N; ++i)
+        //     printf("%f\n", A[i]);
+    }
+    else
+    {
+        MPI_Send(A+my_top_row_index, 1, full_chunk_type, 0, 0, cartesian_comm);
+    }
+
     free(A);
 
     MPI_Type_free(&top_bottom_type);
+    MPI_Type_free(&left_right_type);
+    MPI_Type_free(&full_chunk_type);
     MPI_Finalize();
 
     return 0;

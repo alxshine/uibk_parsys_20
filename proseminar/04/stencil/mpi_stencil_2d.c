@@ -13,14 +13,14 @@ int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
 
-    int N = 40;
+    int N = 200;
     if (argc > 1)
         N = atoi(argv[1]);
     int ranks_per_dim = 2;
     if (argc > 2)
         ranks_per_dim = atoi(argv[2]);
     const int S = N * N;
-    const int T = N*50;
+    const int T = 100;
 
     MPI_Status mpi_status;
 
@@ -100,6 +100,8 @@ int main(int argc, char **argv)
     // printf("%d: up: %d, down: %d, left: %d, right: %d\n", my_rank, nb_up > 0, nb_down > 0, nb_left > 0, nb_right > 0);
     // MPI_Finalize();
     // return 0;
+
+    double before = MPI_Wtime();
 
     for (int t = 0; t < T; t++)
     {
@@ -205,6 +207,9 @@ int main(int argc, char **argv)
         //        }
     }
 
+    double after = MPI_Wtime();
+    double time = after - before;
+
     // printf("Final:\n");
     // printTemperature_2d(A, N);
     // printf("\n");
@@ -218,19 +223,20 @@ int main(int argc, char **argv)
             int current_col = i % ranks_per_dim;
             int current_start = current_row * chunk_size * N + current_col * chunk_size;
 
-            MPI_Recv(A+current_start, 1, full_chunk_type, i, 0, cartesian_comm, MPI_STATUS_IGNORE);
+            MPI_Recv(A + current_start, 1, full_chunk_type, i, 0, cartesian_comm, MPI_STATUS_IGNORE);
         }
 
         int success = is_valid(A, N, source_x, source_y);
         printf("%d: Verification: %s\n", my_rank, (success) ? "OK" : "FAILED");
         printf("\n");
-        printTemperature_2d(A, N);
+        // printTemperature_2d(A, N);
+        printf("\nWall time: %lf\n", time);
         // for (int i = 0; i < N; ++i)
         //     printf("%f\n", A[i]);
     }
     else
     {
-        MPI_Send(A+my_top_row_index, 1, full_chunk_type, 0, 0, cartesian_comm);
+        MPI_Send(A + my_top_row_index, 1, full_chunk_type, 0, 0, cartesian_comm);
     }
 
     free(A);

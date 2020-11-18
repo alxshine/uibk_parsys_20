@@ -5,4 +5,4 @@ services:
     ports:
       - "2338:22"
     volumes:
-      - .:/uibk_parsys_20
+      - .:/home/dev/uibk_parsys_20

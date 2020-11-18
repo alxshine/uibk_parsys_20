@@ -10,7 +10,7 @@ ENV TZ=Europe/Amsterdam
 RUN apt-get update -y && \
     # apt-get install -y --no-install-recommends sudo apt-utils && \
     apt-get install -y --no-install-recommends wget openssh-server mosh \
-    gcc g++ gdb gfortran make valgrind \
+    gcc g++ gdb gfortran make valgrind git \
     libopenmpi-dev openmpi-bin openmpi-common openmpi-doc binutils
 
 # ------------------------------------------------------------
@@ -24,16 +24,17 @@ RUN mkdir /var/run/sshd \
     && sed -ri 's/^PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config \
     && sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
 
+RUN adduser --disabled-password --gecos '' dev
+USER dev
+
 # get necessary keys during build
 ARG github_user
 RUN test -n "$github_user"
 
-ARG SSH=/root/.ssh
-
-RUN mkdir ${SSH}
-RUN chmod 700 ${SSH}
-RUN wget --no-check-certificate "https://github.com/${github_user}.keys" -O ${SSH}/authorized_keys
-RUN chmod 600 ${SSH}/authorized_keys
+RUN mkdir ${HOME}/.ssh
+RUN chmod 700 ${HOME}/.ssh
+RUN wget --no-check-certificate "https://github.com/${github_user}.keys" -O ${HOME}/.ssh/authorized_keys
+RUN chmod 600 ${HOME}/.ssh/authorized_keys
 
 # ------------------------------------------------------------
 # Configure OpenMPI
@@ -43,6 +44,8 @@ RUN chmod 600 ${SSH}/authorized_keys
 RUN rm -fr ${HOME}/.openmpi && mkdir -p ${HOME}/.openmpi
 ADD default-mca-params.conf ${HOME}/.openmpi/mca-params.conf
 RUN chown -R ${USER}:${USER} ${HOME}/.openmpi
+
+USER root
 
 CMD ["/usr/sbin/sshd", "-D"]
 # CMD ["bash"]

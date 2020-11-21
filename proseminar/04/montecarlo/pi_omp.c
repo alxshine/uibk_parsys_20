@@ -25,8 +25,7 @@ int main(int argc, char **argv)
     omp_set_num_threads(num_threads);
 
     double before = omp_get_wtime();
-#pragma omp parallel reduction(+ \
-                               : inside)
+#pragma omp parallel
     {
         int seed = 1337 + omp_get_thread_num();
         // printf("num_threads: %d, number of threads: %d\n", num_threads, omp_get_num_threads());
@@ -39,6 +38,7 @@ int main(int argc, char **argv)
             float yf = y * 2.f / RAND_MAX;
 
             float distance = sqrtf(xf * xf + yf * yf);
+#pragma atomic
             inside += distance < 1;
         }
     }

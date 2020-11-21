@@ -1,5 +1,12 @@
 #!/bin/bash
 
+#$ -q std.q
+#$ -cwd
+#$ -N montecarlo
+#$ -o montecarlo_omp.log
+#$ -j yes
+#$ -pe openmpi-8perhost 8
+
 for problem_size in {100,1000,10000,100000,1000000,10000000,100000000}
 do
     for num_threads in {1,2,4,8}

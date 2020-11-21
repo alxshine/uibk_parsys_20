@@ -38,7 +38,7 @@ int main(int argc, char **argv)
             float yf = y * 2.f / RAND_MAX;
 
             float distance = sqrtf(xf * xf + yf * yf);
-#pragma atomic
+#pragma critical
             inside += distance < 1;
         }
     }

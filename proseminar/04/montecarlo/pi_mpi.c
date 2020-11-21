@@ -9,7 +9,7 @@ const int shift_offset = RAND_MAX / 2;
 int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
-    int seed = 1337;
+    unsigned int seed = 1337;
 
     long total_steps = 1e8;
     if (argc > 1)

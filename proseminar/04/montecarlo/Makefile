@@ -1,4 +1,4 @@
-flags=-O2
+flags=-O2 -std=c99
 
 all: pi_seq pi_mpi
 
@@ -8,6 +8,6 @@ pi_seq: pi_seq.c
 pi_mpi: pi_mpi.c
 	mpicc $(flags) $< -o $@ -lm
 
-.PHONY clean
+.PHONY: clean
 clean:
 	rm -f pi_seq pi_mpi

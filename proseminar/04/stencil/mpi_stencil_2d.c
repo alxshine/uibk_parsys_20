@@ -52,10 +52,19 @@ int main(int argc, char **argv)
     Vector B = (Vector)malloc(sizeof(value_t) * S);
 
     // prepare send and receive
-    int chunk_size_x = N / 2;
-    int chunk_size_y = N / 4;
-    int my_row = my_rank / 2;
-    int my_col = my_rank % 2;
+    int chunk_size_x, chunk_size_y, my_row, my_col;
+    if (multi_thread)
+    {
+        chunk_size_x = N / 2;
+        chunk_size_y = N / 4;
+        my_row = my_rank / 2;
+        my_col = my_rank % 2;
+    }
+    else
+    {
+        chunk_size_x = chunk_size_y = N;
+        my_row = my_col = 0;
+    }
 
     // sending top and bottom border is easy
     MPI_Datatype top_bottom_type;

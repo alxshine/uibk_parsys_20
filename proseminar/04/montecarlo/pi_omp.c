@@ -8,7 +8,6 @@ const int shift_offset = RAND_MAX / 2;
 
 int main(int argc, char **argv)
 {
-    int seed = 1337;
 
     long total_steps = 1e8;
     if (argc > 1)
@@ -28,6 +27,7 @@ int main(int argc, char **argv)
 #pragma omp parallel reduction(+ \
                                : pi)
     {
+        int seed = 1337 + omp_get_thread_num();
         // printf("num_threads: %d, number of threads: %d\n", num_threads, omp_get_num_threads());
         int inside = 0;
 #pragma omp for

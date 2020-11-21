@@ -16,4 +16,4 @@ run: mpi
 
 .PHONY: clean
 clean:
-	rm -f seq mpi core* *.log
+	rm -f seq mpi omp core* *.log

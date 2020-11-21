@@ -12,6 +12,6 @@ do
     for num_threads in {1,2,4,8}
     do
         printf "%d threads on problem size %d\n" $num_threads $problem_size
-        ./pi_omp $problem_size $num_threads
+        ./omp $problem_size $num_threads
     done
 done

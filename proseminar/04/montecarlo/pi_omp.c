@@ -19,17 +19,17 @@ int main(int argc, char **argv)
         num_threads = atoi(argv[2]);
 
     double pi;
+    int inside = 0;
 
     omp_set_dynamic(0);
     omp_set_num_threads(num_threads);
 
     double before = omp_get_wtime();
 #pragma omp parallel reduction(+ \
-                               : pi)
+                               : inside)
     {
         int seed = 1337 + omp_get_thread_num();
         // printf("num_threads: %d, number of threads: %d\n", num_threads, omp_get_num_threads());
-        int inside = 0;
 #pragma omp for
         for (long i = 0; i < total_steps; ++i)
         {
@@ -41,8 +41,8 @@ int main(int argc, char **argv)
             float distance = sqrtf(xf * xf + yf * yf);
             inside += distance < 1;
         }
-        pi = 4. * (double)inside / total_steps;
     }
+    pi = 4. * (double)inside / total_steps;
     double after = omp_get_wtime();
     double elapsed = after - before;
 

@@ -2,6 +2,9 @@ flags=-O2 -std=c99
 
 all: pi_seq pi_mpi pi_omp
 
+omp: pi_omp
+	qsub omp.script
+
 pi_seq: pi_seq.c
 	$(CC) $(flags) $< -o $@ -lm
 

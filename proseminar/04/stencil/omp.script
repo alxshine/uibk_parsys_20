@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#$ -q std.q
+#$ -cwd
+#$ -N montecarlo
+#$ -o montecarlo_omp.log
+#$ -j yes
+#$ -pe openmpi-8perhost 8
+
+for problem_size in {100,200,500,750,1000,1500,2000,4000}
+do
+    for num_threads in {1,2,4,8}
+    do
+        printf "%d threads on problem size %d\n" $num_threads $problem_size
+        ./pi_omp $problem_size $num_threads
+    done
+done

@@ -44,5 +44,15 @@ int main(int argc, char **argv)
         pi = 4. * (double)inside / total_steps;
     }
     double after = omp_get_wtime();
-    printf("%d: Approximation for pi after %ld steps: %f, elapsed time: %lf\n", omp_get_thread_num(), total_steps, pi / omp_get_num_threads(), after - before);
+    double elapsed = after - before;
+
+    FILE *results = fopen("performance.csv", "a");
+    if (!results)
+    {
+        perror("Could not open performance.csv");
+        return 1;
+    }
+
+    fprintf(results, "%d,%ld,%lf,%lf\n", num_threads, total_steps, elapsed, pi);
+    fclose(results);
 }

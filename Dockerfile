@@ -47,5 +47,6 @@ RUN chown -R ${USER}:${USER} ${HOME}/.openmpi
 
 USER root
 
-CMD ["/usr/sbin/sshd", "-D"]
+EXPOSE 2338
+CMD ["/usr/sbin/sshd", "-D", "-p 2338"]
 # CMD ["bash"]

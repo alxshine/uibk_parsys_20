@@ -11,7 +11,7 @@ The Open MP implementation can be found in [omp_stencil_2d.c](omp_stencil_2d.c).
 Shown below is a single step of the loop, which I parallelized with OMP
 
 ```C
-#pragma omp parallel for collapse(2) simd schedule(static)
+#pragma omp parallel for collapse(2) schedule(static)
         for (int i = north; i < south; ++i)
         {
             for (int j = west; j < east; ++j)

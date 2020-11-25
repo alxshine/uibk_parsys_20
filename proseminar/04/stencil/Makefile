@@ -12,7 +12,7 @@ omp: omp_stencil_2d.c base.c
 	gcc $(flags) -fopenmp $^ -o $@
 
 run: mpi
-	mpirun -n 8 $< 200 8
+	mpirun -n 8 --oversubscribe $< 200 8
 
 .PHONY: clean
 clean:

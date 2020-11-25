@@ -1,0 +1,10 @@
+{
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+	"containerUser": "dev",
+	"extensions": [
+		"ms-vscode.cpptools"
+	]
+}

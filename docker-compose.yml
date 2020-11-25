@@ -1,8 +1,0 @@
-version: "3.8"
-services:
-  mpi-dev:
-    image: alxshine/mpi-dev:latest
-    ports:
-      - "2338:2338"
-    volumes:
-      - .:/home/dev/uibk_parsys_20

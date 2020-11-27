@@ -20,8 +20,8 @@ const int lower_coord_bound = 0;
 
 int main(int argc, char **argv)
 {
-    size_t num_particles = 1000;
-    size_t T = 100;
+    int num_particles = 10;
+    int T = 1000;
 
     if (argc > 1)
         num_particles = stoi(argv[1]);
@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     uniform_real_distribution<float> velocity_dist{-10, 10};
     normal_distribution<float> mass_dist{10, 200};
 
-    for (size_t i = 0; i < num_particles; i++)
+    for (int i = 0; i < num_particles; i++)
     {
         float x, y, v_x, v_y, mass;
         x = coordinate_dist(rd);
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     }
 #endif
 
-    for (size_t t = 0; t < T; t++)
+    for (int t = 0; t < T; t++)
     {
         for (auto &p : particles)
         {
@@ -86,6 +86,9 @@ int main(int argc, char **argv)
                 other_p.v_y += sign_y * f_y / other_p.m * dt;
             }
 
+            p.x += p.v_x * dt;
+            p.y += p.v_y * dt;
+
             if (p.x > upper_coord_bound)
                 p.x = lower_coord_bound;
             else if (p.x < lower_coord_bound)
@@ -98,6 +101,7 @@ int main(int argc, char **argv)
 
 #ifdef OUTPUT
             output.write((char *)&p, sizeof(Particle));
+            output.write((char *)&t, sizeof(typeof(t)));
             if (!output.good())
             {
                 cerr << "Error while writing in timestep " << t << endl;

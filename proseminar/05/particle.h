@@ -9,5 +9,5 @@ struct Particle
     Particle(float x, float y, float v_x, float v_y, float m);
     ~Particle();
 
-    int operator==(const Particle &other_p) const;
+    bool isClose(const Particle &other_p) const;
 };

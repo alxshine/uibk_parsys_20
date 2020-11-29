@@ -10,11 +10,15 @@ star_type = np.dtype([
     ('m', 'f4'),
     ('t', 'i4')])
 
+upper_coord_bound = 100
+lower_coord_bound = 0
+
 data = np.fromfile('stars.dat', dtype=star_type)
 df = pd.DataFrame.from_records(data)
 
-breakpoint()
-
 fig = px.scatter(df, x="x", y="y",
-                 animation_frame="t", range_x=[0, 1000], range_y=[0, 1000])
+                 animation_frame="t",
+                 range_x=[lower_coord_bound, upper_coord_bound],
+                 range_y=[lower_coord_bound, upper_coord_bound],
+                 size="m")
 fig.show()

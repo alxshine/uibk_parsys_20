@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#$ -q std.q
+#$ -cwd
+#$ -N nbody
+#$ -o nbody.log
+#$ -j yes
+#$ -pe openmp 8
+
+./nbody

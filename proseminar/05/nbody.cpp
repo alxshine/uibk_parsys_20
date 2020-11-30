@@ -79,21 +79,21 @@ int main(int argc, char **argv)
                     continue;
 
                 // skip if closer than epsilon
-                if (p.isClose(other_p))
-                {
-                    //combine particles
-                    auto combined_mass = p.m + other_p.m;
-                    auto new_v_x = (p.v_x * p.m + other_p.v_x * other_p.m) / combined_mass;
-                    auto new_v_y = (p.v_y * p.m + other_p.v_y * other_p.m) / combined_mass;
+                //if (p.isClose(other_p))
+                //{
+                //    //combine particles
+                //    auto combined_mass = p.m + other_p.m;
+                //    auto new_v_x = (p.v_x * p.m + other_p.v_x * other_p.m) / combined_mass;
+                //    auto new_v_y = (p.v_y * p.m + other_p.v_y * other_p.m) / combined_mass;
 
-                    p.v_x = new_v_x;
-                    p.v_y = new_v_y;
-                    p.m = combined_mass;
+                //    p.v_x = new_v_x;
+                //    p.v_y = new_v_y;
+                //    p.m = combined_mass;
 
-                    other_p.m = 0;
+                //    other_p.m = 0;
 
-                    continue;
-                }
+                //    continue;
+                //}
 
                 auto r_x = p.x - other_p.x;
                 auto r_y = p.y - other_p.y;
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
             }
         }
 
-        particles.erase(remove_if(particles.begin(), particles.end(), [](const Particle &p) { return p.m == 0; }), particles.end());
+        //particles.erase(remove_if(particles.begin(), particles.end(), [](const Particle &p) { return p.m == 0; }), particles.end());
 
         for (auto &p : particles)
         {

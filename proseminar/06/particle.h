@@ -10,4 +10,6 @@ struct Particle
     ~Particle();
 
     bool isClose(const Particle &other_p) const;
+
+    bool operator==(const Particle &other_p) const;
 };

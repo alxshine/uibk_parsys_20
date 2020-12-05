@@ -1,4 +1,5 @@
 #include <iostream>
+#include <array>
 #include <vector>
 #include <random>
 #include <algorithm>
@@ -13,6 +14,7 @@
 
 #include "particle.h"
 #include "constants.h"
+#include "center_of_mass.h"
 
 using namespace std;
 
@@ -32,8 +34,13 @@ int main(int argc, char **argv)
         T = stoi(argv[2]);
 
     // initialize
-    vector<Particle> particles;
-    particles.reserve(num_particles);
+    constexpr int num_rows = 8;
+    constexpr int num_cols = 8;
+    constexpr int num_blocks = num_rows * num_cols;
+    constexpr float block_size = (upper_coord_bound - lower_coord_bound) / (float)num_rows;
+    array<vector<Particle>, num_blocks> blocks;
+    array<CenterOfMass, num_blocks> centers_of_mass;
+    array<vector<Particle>, num_blocks> entering_particles;
 
     // random_device rd;
     default_random_engine eng{1337};
@@ -43,13 +50,18 @@ int main(int argc, char **argv)
 
     for (int i = 0; i < num_particles; i++)
     {
+        // create new particle
         float x, y, v_x, v_y, mass;
         x = coordinate_dist(eng);
         y = coordinate_dist(eng);
         v_x = velocity_dist(eng);
         v_y = velocity_dist(eng);
         mass = mass_dist(eng);
-        particles.emplace_back(x, y, v_x, v_y, mass);
+
+        // insert new particle
+        int row = y / block_size;
+        int col = x / block_size;
+        blocks[row * num_cols + col].emplace_back(x, y, v_x, v_y, mass);
     }
 
 #ifdef OUTPUT
@@ -61,112 +73,168 @@ int main(int argc, char **argv)
     }
 #endif
 
-    cout << "Timing for " << num_particles << " particles and " << T << " timesteps" << endl;
+    std::cout << "Timing for " << num_particles << " particles and " << T << " timesteps" << endl;
     auto t_before = chrono::high_resolution_clock::now();
 
     for (int t = 0; t < T; t++)
     {
-        for (int i = 0; i < particles.size() - 1; i++)
+        for (int i = 0; i < num_blocks; ++i)
         {
-            Particle &p = particles[i]; // TODO: make an iterator
-            if (p.m == 0)
-                continue;
+            auto &particles = blocks[i];
 
-            for (int j = i + 1; j < particles.size(); j++)
+            float total_mass = 0;
+            float cm_x = 0;
+            float cm_y = 0;
+
+            for (auto p = particles.begin(); p < particles.end(); ++p)
             {
-                Particle &other_p = particles[j];
-                if (other_p.m == 0)
+                if (p->m == 0) // these are never true, but tests on my machine show times are consistently 1s faster with these ifs than without
                     continue;
 
-                // skip if closer than epsilon
-                //if (p.isClose(other_p))
-                //{
-                //    //combine particles
-                //    auto combined_mass = p.m + other_p.m;
-                //    auto new_v_x = (p.v_x * p.m + other_p.v_x * other_p.m) / combined_mass;
-                //    auto new_v_y = (p.v_y * p.m + other_p.v_y * other_p.m) / combined_mass;
+                total_mass += p->m;
+                cm_x += p->x * p->m;
+                cm_y += p->y + p->m;
 
-                //    p.v_x = new_v_x;
-                //    p.v_y = new_v_y;
-                //    p.m = combined_mass;
-
-                //    other_p.m = 0;
-
-                //    continue;
-                //}
-
-                auto r_x = p.x - other_p.x;
-                auto r_y = p.y - other_p.y;
-                auto r = sqrtf(r_x * r_x + r_y * r_y) + EPSILON;
-
-                auto x_ratio = r_x / r;
-                auto y_ratio = r_y / r;
-
-                auto r3 = r * r * r;
-
-                auto f = G * p.m * other_p.m / r3;
-                auto f_x = x_ratio * f;
-                auto f_y = y_ratio * f;
-
-                p.v_x -= f_x * dt / p.m;
-                p.v_y -= f_y * dt / p.m;
-
-                other_p.v_x += f_x * dt / other_p.m;
-                other_p.v_y += f_y * dt / other_p.m;
-
-                if (p.v_x != p.v_x || p.v_y != p.v_y)
+                for (auto other_p = p + 1; other_p < particles.end(); ++other_p)
                 {
-                    cout
-                        << "Error: "
-                        << "t=" << t << ", i=" << i << ", j=" << j << endl;
-                    return 1;
+                    if (other_p->m == 0) // and it really needs both ifs, I assume they shift some code around somewhere, but I'm really confused
+                        continue;
+
+                    auto r_x = p->x - other_p->x;
+                    auto r_y = p->y - other_p->y;
+                    auto r = sqrtf(r_x * r_x + r_y * r_y) + EPSILON;
+
+                    auto x_ratio = r_x / r;
+                    auto y_ratio = r_y / r;
+
+                    auto r3 = r * r * r;
+
+                    auto f = G * p->m * other_p->m / r3;
+                    auto f_x = x_ratio * f;
+                    auto f_y = y_ratio * f;
+
+                    p->v_x -= f_x * dt / p->m;
+                    p->v_y -= f_y * dt / p->m;
+
+                    other_p->v_x += f_x * dt / other_p->m;
+                    other_p->v_y += f_y * dt / other_p->m;
+
+                    if (p->v_x != p->v_x || p->v_y != p->v_y)
+                    {
+                        std::cout << "Error" << endl;
+                        return 1;
+                    }
+                }
+            }
+
+            centers_of_mass[i] = {cm_x / total_mass, cm_y / total_mass, total_mass};
+        }
+
+        for (int i = 0; i < num_blocks; ++i)
+        {
+            auto &particles = blocks[i];
+
+            for (auto &p : particles)
+            {
+                for (int j = 0; j < num_blocks; ++j)
+                {
+                    if (i == j) // we don't need to compute interaction with "our" block
+                        continue;
+
+                    const auto &com = centers_of_mass[j];
+                    if (com.m == 0) // handle empty blocks
+                        continue;
+
+                    auto r_x = p.x - com.x;
+                    auto r_y = p.y - com.y;
+                    auto r = sqrtf(r_x * r_x + r_y * r_y) + EPSILON;
+
+                    auto x_ratio = r_x / r;
+                    auto y_ratio = r_y / r;
+
+                    auto r3 = r * r * r;
+
+                    auto f = G * p.m * com.m / r3;
+                    auto f_x = x_ratio * f;
+                    auto f_y = y_ratio * f;
+
+                    p.v_x -= f_x * dt / p.m;
+                    p.v_y -= f_y * dt / p.m;
+                }
+
+                p.x += p.v_x * dt;
+                p.y += p.v_y * dt;
+
+                if (p.x >= upper_coord_bound)
+                {
+                    p.x = upper_coord_bound - 1;
+                    p.v_x = -p.v_x / 10;
+                }
+                else if (p.x < lower_coord_bound)
+                {
+                    p.x = lower_coord_bound;
+                    p.v_x = -p.v_x / 10;
+                }
+
+                if (p.y >= upper_coord_bound)
+                {
+                    p.y = upper_coord_bound - 1;
+                    p.v_y = -p.v_y / 10;
+                }
+                else if (p.y < lower_coord_bound)
+                {
+                    p.y = lower_coord_bound;
+                    p.v_y = -p.v_y / 10;
+                }
+
+                int new_row = p.y / block_size;
+                int new_col = p.x / block_size;
+                int new_block = new_row * num_cols + new_col;
+
+                if (new_block != i)
+                {
+                    // move to new block
+                    entering_particles[new_block].push_back(p);
+                    // mark for deletion in current block
+                    p.m = 0;
                 }
             }
         }
 
-        //particles.erase(remove_if(particles.begin(), particles.end(), [](const Particle &p) { return p.m == 0; }), particles.end());
-
-        for (auto &p : particles)
+        for (int i = 0; i < num_blocks; ++i)
         {
-            p.x += p.v_x * dt;
-            p.y += p.v_y * dt;
+            auto &particles = blocks[i];
 
-            if (p.x > upper_coord_bound)
-            {
-                p.x = upper_coord_bound;
-                p.v_x = -p.v_x / 10;
-            }
-            else if (p.x < lower_coord_bound)
-            {
-                p.x = lower_coord_bound;
-                p.v_x = -p.v_x / 10;
-            }
+            // first remove marked particles
+            particles.erase(std::remove_if(particles.begin(), particles.end(), [](const Particle &p) { return p.m == 0; }), particles.end());
 
-            if (p.y > upper_coord_bound)
-            {
-                p.y = upper_coord_bound;
-                p.v_y = -p.v_y / 10;
-            }
-            else if (p.y < lower_coord_bound)
-            {
-                p.y = lower_coord_bound;
-                p.v_y = -p.v_y / 10;
-            }
+            // then add incoming particles
+            for (auto &new_particle : entering_particles[i])
+                particles.push_back(new_particle);
+
+            // then clear change vectors
+            entering_particles[i].clear();
+        }
 
 #ifdef OUTPUT
-            output.write((char *)&p, sizeof(Particle));
-            output.write((char *)&t, sizeof(typeof(t)));
-            if (!output.good())
+        for (int i = 0; i < num_blocks; ++i)
+        {
+            for (auto &p : blocks[i])
             {
-                cerr << "Error while writing in timestep " << t << endl;
-                return 1;
+                output.write((char *)&p, sizeof(Particle));
+                output.write((char *)&t, sizeof(t));
+                if (!output.good())
+                {
+                    cerr << "Error while writing in timestep " << t << endl;
+                    return 1;
+                }
             }
-#endif
         }
+#endif
     }
 
     auto t_after = chrono::high_resolution_clock::now();
-    cout << "Duration: " << chrono::duration<double, milli>(t_after - t_before).count() << " ms" << endl;
+    std::cout << "Duration: " << chrono::duration<double, milli>(t_after - t_before).count() << " ms" << endl;
 
 #ifdef OUTPUT
     output.close();

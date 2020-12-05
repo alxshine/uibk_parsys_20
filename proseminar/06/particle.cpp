@@ -20,3 +20,12 @@ bool Particle::isClose(const Particle &other_p) const
 
     return distance < combine_dist;
 }
+
+bool Particle::operator==(const Particle &other_p) const
+{
+    return this->x == other_p.x &&
+           this->y == other_p.y &&
+           this->v_x == other_p.v_x &&
+           this->v_y == other_p.v_y &&
+           this->m == other_p.m;
+}

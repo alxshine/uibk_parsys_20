@@ -1,4 +1,4 @@
-flags=-O2 -ffast-math -std=c++11
+flags=-O2 -ffast-math -std=c++11 -fopenmp
 # flags=-g -std=c++11
 
 all: nbody

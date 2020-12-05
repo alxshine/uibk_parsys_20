@@ -12,6 +12,8 @@
 #include <fstream>
 #endif
 
+#include <omp.h>
+
 #include "particle.h"
 #include "constants.h"
 #include "center_of_mass.h"
@@ -78,6 +80,7 @@ int main(int argc, char **argv)
 
     for (int t = 0; t < T; t++)
     {
+#pragma omp parallel for
         for (int i = 0; i < num_blocks; ++i)
         {
             auto &particles = blocks[i];
@@ -121,8 +124,7 @@ int main(int argc, char **argv)
 
                     if (p->v_x != p->v_x || p->v_y != p->v_y)
                     {
-                        std::cout << "Error" << endl;
-                        return 1;
+                        throw "Error";
                     }
                 }
             }
@@ -130,6 +132,7 @@ int main(int argc, char **argv)
             centers_of_mass[i] = {cm_x / total_mass, cm_y / total_mass, total_mass};
         }
 
+#pragma omp parallel for
         for (int i = 0; i < num_blocks; ++i)
         {
             auto &particles = blocks[i];
@@ -186,35 +189,43 @@ int main(int argc, char **argv)
                     p.y = lower_coord_bound;
                     p.v_y = -p.v_y / 10;
                 }
-
-                int new_row = p.y / block_size;
-                int new_col = p.x / block_size;
-                int new_block = new_row * num_cols + new_col;
-
-                if (new_block != i)
-                {
-                    // move to new block
-                    entering_particles[new_block].push_back(p);
-                    // mark for deletion in current block
-                    p.m = 0;
-                }
             }
         }
 
-        for (int i = 0; i < num_blocks; ++i)
-        {
-            auto &particles = blocks[i];
+        // for (int i = 0; i < num_blocks; ++i)
+        // {
+        //     auto &particles = blocks[i];
 
-            // first remove marked particles
-            particles.erase(std::remove_if(particles.begin(), particles.end(), [](const Particle &p) { return p.m == 0; }), particles.end());
+        //     for (auto &p : particles)
+        //     {
+        //         int new_row = p.y / block_size;
+        //         int new_col = p.x / block_size;
+        //         int new_block = new_row * num_cols + new_col;
 
-            // then add incoming particles
-            for (auto &new_particle : entering_particles[i])
-                particles.push_back(new_particle);
+        //         if (new_block != i)
+        //         {
+        //             // move to new block
+        //             entering_particles[new_block].push_back(p);
+        //             // mark for deletion in current block
+        //             p.m = 0;
+        //         }
+        //     }
+        // }
 
-            // then clear change vectors
-            entering_particles[i].clear();
-        }
+        // for (int i = 0; i < num_blocks; ++i)
+        // {
+        //     auto &particles = blocks[i];
+
+        //     // first remove marked particles
+        //     particles.erase(std::remove_if(particles.begin(), particles.end(), [](const Particle &p) { return p.m == 0; }), particles.end());
+
+        //     // then add incoming particles
+        //     for (auto &new_particle : entering_particles[i])
+        //         particles.push_back(new_particle);
+
+        //     // then clear change vectors
+        //     entering_particles[i].clear();
+        // }
 
 #ifdef OUTPUT
         for (int i = 0; i < num_blocks; ++i)

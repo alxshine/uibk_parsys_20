@@ -12,6 +12,8 @@
 #include <fstream>
 #endif
 
+#define BALANCE_STEPS 10
+
 #include <omp.h>
 
 #include "particle.h"
@@ -46,7 +48,7 @@ int main(int argc, char **argv)
 
     // random_device rd;
     default_random_engine eng{1337};
-    uniform_real_distribution<float> coordinate_dist{lower_coord_bound, upper_coord_bound};
+    uniform_real_distribution<float> coordinate_dist{lower_coord_bound, 12.5};
     uniform_real_distribution<float> velocity_dist{0, 0};
     uniform_real_distribution<float> mass_dist{1e3, 1e4};
 
@@ -192,40 +194,46 @@ int main(int argc, char **argv)
             }
         }
 
-        // for (int i = 0; i < num_blocks; ++i)
-        // {
-        //     auto &particles = blocks[i];
+#ifdef BALANCE_STEPS
+        if (t % BALANCE_STEPS == 0)
+        {
+            for (int i = 0; i < num_blocks; ++i)
+            {
+                auto &particles = blocks[i];
 
-        //     for (auto &p : particles)
-        //     {
-        //         int new_row = p.y / block_size;
-        //         int new_col = p.x / block_size;
-        //         int new_block = new_row * num_cols + new_col;
+                for (auto &p : particles)
+                {
+                    int new_row = p.y / block_size;
+                    int new_col = p.x / block_size;
+                    int new_block = new_row * num_cols + new_col;
 
-        //         if (new_block != i)
-        //         {
-        //             // move to new block
-        //             entering_particles[new_block].push_back(p);
-        //             // mark for deletion in current block
-        //             p.m = 0;
-        //         }
-        //     }
-        // }
+                    if (new_block != i)
+                    {
+                        // move to new block
+                        entering_particles[new_block].push_back(p);
+                        // mark for deletion in current block
+                        p.m = 0;
+                    }
+                }
+            }
 
-        // for (int i = 0; i < num_blocks; ++i)
-        // {
-        //     auto &particles = blocks[i];
+#pragma omp for
+            for (int i = 0; i < num_blocks; ++i)
+            {
+                auto &particles = blocks[i];
 
-        //     // first remove marked particles
-        //     particles.erase(std::remove_if(particles.begin(), particles.end(), [](const Particle &p) { return p.m == 0; }), particles.end());
+                // first remove marked particles
+                particles.erase(std::remove_if(particles.begin(), particles.end(), [](const Particle &p) { return p.m == 0; }), particles.end());
 
-        //     // then add incoming particles
-        //     for (auto &new_particle : entering_particles[i])
-        //         particles.push_back(new_particle);
+                // then add incoming particles
+                for (auto &new_particle : entering_particles[i])
+                    particles.push_back(new_particle);
 
-        //     // then clear change vectors
-        //     entering_particles[i].clear();
-        // }
+                // then clear change vectors
+                entering_particles[i].clear();
+            }
+        }
+#endif
 
 #ifdef OUTPUT
         for (int i = 0; i < num_blocks; ++i)

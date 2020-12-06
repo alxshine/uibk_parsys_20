@@ -221,7 +221,7 @@ int main(int argc, char **argv)
                 }
             }
 
-#pragma omp for
+#pragma omp parallel for
             for (int i = 0; i < num_blocks; ++i)
             {
                 auto &particles = blocks[i];

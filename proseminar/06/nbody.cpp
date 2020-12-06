@@ -12,7 +12,7 @@
 #include <fstream>
 #endif
 
-#define BALANCE_STEPS 10
+// #define BALANCE_STEPS 10
 
 #include <omp.h>
 
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     }
 #endif
 
-    std::cout << "Timing for " << num_particles << " particles and " << T << " timesteps" << endl;
+//    std::cout << "Timing for " << num_particles << " particles and " << T << " timesteps" << endl;
     auto t_before = chrono::high_resolution_clock::now();
 
     for (int t = 0; t < T; t++)
@@ -257,7 +257,7 @@ int main(int argc, char **argv)
     }
 
     auto t_after = chrono::high_resolution_clock::now();
-    std::cout << "Duration: " << chrono::duration<double, milli>(t_after - t_before).count() << " ms" << endl;
+    std::cout << num_particles << "," << chrono::duration<double, milli>(t_after - t_before).count() << " ms" << endl;
 
 #ifdef OUTPUT
     output.close();

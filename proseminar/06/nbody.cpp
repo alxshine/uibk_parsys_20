@@ -48,7 +48,11 @@ int main(int argc, char **argv)
 
     // random_device rd;
     default_random_engine eng{1337};
+#ifdef BALANCE_STEPS
     uniform_real_distribution<float> coordinate_dist{lower_coord_bound, 12.5};
+#else
+    uniform_real_distribution<float> coordinate_dist{lower_coord_bound, upper_coord_bound};
+#endif
     uniform_real_distribution<float> velocity_dist{0, 0};
     uniform_real_distribution<float> mass_dist{1e3, 1e4};
 

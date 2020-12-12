@@ -5,9 +5,9 @@
 #$ -N hybrid_stencil
 #$ -o stencil.log
 #$ -j yes
-#$ -pe openmpi-8perhost 16
+#$ -pe openmpi-2perhost 4
 
 #$ -M alexander.schloegl@uibk.ac.at
 
 module load openmpi/3.1.1
-mpiexec -n 2 --map-by node ./stencil_mpi 
+mpiexec -n 2 --map-by node ./stencil_mpi 2 1

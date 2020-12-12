@@ -36,12 +36,14 @@ int main(int argc, char **argv)
     MPI_Comm cartesian_comm;
     int dims[] = {dim_y, dim_x};
 
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
     const int periods[] = {1, 1}; // enable periodicity
     if (MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 1, &cartesian_comm))
     {
         perror("Could not create cartesion communicator");
         return 1;
     }
+    MPI_Comm_set_errhandler(cartesian_comm, MPI_ERRORS_RETURN);
 
     int my_rank;
     MPI_Comm_rank(cartesian_comm, &my_rank);
@@ -230,7 +232,7 @@ int main(int argc, char **argv)
 #pragma endregion
 #pragma endregion
 
-        // #pragma omp parallel for
+#pragma omp parallel for
         for (size_t i = my_row * chunk_size_y; i < (my_row + 1) * chunk_size_y; ++i)
         {
             size_t y_above = i != 0 ? i - 1 : 0;

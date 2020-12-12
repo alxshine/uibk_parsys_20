@@ -10,4 +10,4 @@ run: stencil_mpi
 
 .PHONY: clean
 clean:
-	rm -f seq mpi omp core* *.log
+	rm -f stencil_mpi core* *.log

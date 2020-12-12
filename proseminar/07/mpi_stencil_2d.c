@@ -6,8 +6,7 @@
 #include "base.h"
 #define DATA_TYPE MPI_DOUBLE
 
-const int from_lower_tag = 0;
-const int from_higher_tag = 1;
+const int bogus_message_tag = 0;
 
 int main(int argc, char **argv)
 {
@@ -22,16 +21,19 @@ int main(int argc, char **argv)
     const int S = N * N;
     const int T = 100;
 
+    int dim_y = 4;
+    int dim_x = 2;
+
     MPI_Status mpi_status;
 
     MPI_Comm cartesian_comm;
     int dims[] = {1, 1};
     if (multi_thread)
     {
-        dims[0] = 4;
-        dims[1] = 2;
+        dims[0] = dim_y;
+        dims[1] = dim_x;
     }
-    const int periods[] = {0, 0};
+    const int periods[] = {1, 1}; // enable periodicity
     if (MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 1, &cartesian_comm))
     {
         perror("Could not create cartesion communicator");
@@ -45,6 +47,12 @@ int main(int argc, char **argv)
     MPI_Cart_shift(cartesian_comm, 0, 1, &nb_up, &nb_down);
     MPI_Cart_shift(cartesian_comm, 1, 1, &nb_left, &nb_right);
 
+#ifdef DEBUG_NEIGHBORS
+    printf("%d: nb_up=%d, nb_down=%d, nb_left=%d, nb_right=%d\n", my_rank, nb_up, nb_down, nb_left, nb_right);
+    MPI_Finalize();
+    return 0;
+#endif
+
     if (!my_rank)
         printf("Computing heat distribution for room size N*N=%d for T=%d timesteps\n", S, T);
 
@@ -55,10 +63,10 @@ int main(int argc, char **argv)
     int chunk_size_x, chunk_size_y, my_row, my_col;
     if (multi_thread)
     {
-        chunk_size_x = N / 2;
-        chunk_size_y = N / 4;
-        my_row = my_rank / 2;
-        my_col = my_rank % 2;
+        chunk_size_x = N / dim_x;
+        chunk_size_y = N / dim_y;
+        my_row = my_rank / dim_x;
+        my_col = my_rank % dim_x;
     }
     else
     {
@@ -84,6 +92,7 @@ int main(int argc, char **argv)
         A[i] = 273;
     }
 
+    // hard coded heat source coordinates
     int source_x = N / 4;
     int source_y = N / 4;
     size_t source_coord = source_y * N + source_x;
@@ -110,80 +119,117 @@ int main(int argc, char **argv)
     int left_nb_index = my_left_column_index - 1;
     int right_nb_index = my_right_column_index + 1;
 
-    // printf("%d: top_row=%d, bottom_row=%d, left_column=%d, right_column=%d, last_index=%d\n", my_rank, my_top_row_index, my_bottom_row_index, my_left_column_index, my_right_column_index, my_bottom_row_index + chunk_size - 1);
-    // printf("%d: neighbors: top_row=%d, bottom_row=%d, left_column=%d, right_column=%d\n", my_rank, top_nb_index, down_nb_index, left_nb_index, right_nb_index);
-    // printf("%d: up: %d, down: %d, left: %d, right: %d\n", my_rank, nb_up > 0, nb_down > 0, nb_left > 0, nb_right > 0);
-    // MPI_Finalize();
-    // return 0;
+    // fix periodic boundaries
+    if (my_row == 0)
+        top_nb_index += S;
+    if (my_row == dim_y - 1)
+        down_nb_index -= S;
+    if (my_col == 0)
+        left_nb_index += N;
+    if (my_col == dim_x - 1)
+        right_nb_index -= N;
+
+#ifdef debug_coordinates
+    printf("%d: top_row=%d, bottom_row=%d, left_column=%d, right_column=%d, last_index=%d\n", my_rank, my_top_row_index, my_bottom_row_index, my_left_column_index, my_right_column_index, my_bottom_row_index + chunk_size_x - 1);
+    printf("%d: neighbors: top_row=%d, bottom_row=%d, left_column=%d, right_column=%d\n", my_rank, top_nb_index, down_nb_index, left_nb_index, right_nb_index);
+    printf("%d: up: %d, down: %d, left: %d, right: %d\n", my_rank, nb_up > 0, nb_down > 0, nb_left > 0, nb_right > 0);
+    MPI_Finalize();
+    return 0;
+#endif
 
     double before = MPI_Wtime();
 
     for (int t = 0; t < T; t++)
     {
-
 #pragma region exchange messages
 #pragma region top bottom
-        // send top if nb_up exists
-        if (nb_up >= 0)
+        if (my_row % 2 == 0)
         {
-            // printf("%d: sending top row at index %d to rank %d\n", my_rank, my_top_row_index, nb_up);
-            MPI_Send(A + my_top_row_index, 1, top_bottom_type, nb_up, from_higher_tag, cartesian_comm);
-        }
-        if (nb_down > 0)
-        {
-            // printf("%d: receiving bottom row at index %d from rank %d\n", my_rank, down_nb_index, nb_down);
-            // receive bottom if nb_down exists
-            MPI_Recv(A + down_nb_index, 1, top_bottom_type, nb_down, from_higher_tag, cartesian_comm, &mpi_status);
+            // if we are an even row, send first, then receive
+            // neighbor up
+            // printf("%d, sending top row to nb_up %d\n", my_rank, nb_up);
+            MPI_Send(A + my_top_row_index, 1, top_bottom_type, nb_up, bogus_message_tag, cartesian_comm);
+            MPI_Recv(A + top_nb_index, 1, top_bottom_type, nb_up, bogus_message_tag, cartesian_comm, &mpi_status);
             if (mpi_status.MPI_ERROR != MPI_SUCCESS)
             {
-                printf("ERROR: could not receive bottom neighbor row on rank %d\n", my_rank);
+                printf("ERROR: could not receive top neighbor row on rank %d\n", my_rank);
                 return 1;
             }
 
-            // send bottom if nb_down exists
-            // printf("%d: sending bottom row at index %d to rank %d\n", my_rank, my_bottom_row_index, nb_down);
-            MPI_Send(A + my_bottom_row_index, 1, top_bottom_type, nb_down, from_lower_tag, cartesian_comm);
-        }
-
-        // receive top if nb_up exists
-        if (nb_up >= 0)
-        {
-            // printf("%d: receiving top row at index %d from rank %d\n", my_rank, down_nb_index, nb_up);
-            MPI_Recv(A + top_nb_index, 1, top_bottom_type, nb_up, from_lower_tag, cartesian_comm, &mpi_status);
+            // neighbor down
+            MPI_Send(A + my_bottom_row_index, 1, top_bottom_type, nb_down, bogus_message_tag, cartesian_comm);
+            MPI_Recv(A + down_nb_index, 1, top_bottom_type, nb_down, bogus_message_tag, cartesian_comm, &mpi_status);
             if (mpi_status.MPI_ERROR != MPI_SUCCESS)
             {
                 printf("ERROR: could not receive bottom neighbor row on rank %d\n", my_rank);
                 return 1;
             }
         }
-#pragma endregion
-#pragma region left right
-        // send left nb_left exists
-        if (nb_left >= 0)
+        else
         {
-            MPI_Send(A + my_left_column_index, 1, left_right_type, nb_left, from_higher_tag, cartesian_comm);
-        }
-
-        if (nb_right >= 0)
-        {
-            MPI_Recv(A + right_nb_index, 1, left_right_type, nb_right, from_higher_tag, cartesian_comm, &mpi_status);
+            // if we are an odd row, receive first, then send
+            // neighbor down
+            // printf("%d, receiving below row from nb_down %d\n", my_rank, nb_down);
+            MPI_Recv(A + down_nb_index, 1, top_bottom_type, nb_down, bogus_message_tag, cartesian_comm, &mpi_status);
             if (mpi_status.MPI_ERROR != MPI_SUCCESS)
             {
-                printf("ERROR: could not receive right neighbor column on rank %d\n", my_rank);
+                printf("ERROR: could not receive bottom neighbor row on rank %d\n", my_rank);
                 return 1;
             }
+            MPI_Send(A + my_bottom_row_index, 1, top_bottom_type, nb_down, bogus_message_tag, cartesian_comm);
 
-            MPI_Send(A + my_right_column_index, 1, left_right_type, nb_right, from_lower_tag, cartesian_comm);
+            // neighbor up
+            MPI_Recv(A + top_nb_index, 1, top_bottom_type, nb_up, bogus_message_tag, cartesian_comm, &mpi_status);
+            if (mpi_status.MPI_ERROR != MPI_SUCCESS)
+            {
+                printf("ERROR: could not receive top neighbor row on rank %d\n", my_rank);
+                return 1;
+            }
+            MPI_Send(A + my_top_row_index, 1, top_bottom_type, nb_up, bogus_message_tag, cartesian_comm);
         }
 
-        if (nb_left >= 0)
+        // same for columns
+        if (my_col % 2 == 0)
         {
-            MPI_Recv(A + left_nb_index, 1, left_right_type, nb_left, from_lower_tag, cartesian_comm, &mpi_status);
+            //neighbor left
+            // printf("%d: sending to left neighbor %d\n", my_rank, nb_left);
+            MPI_Send(A + my_left_column_index, 1, left_right_type, nb_left, bogus_message_tag, cartesian_comm);
+            MPI_Recv(A + left_nb_index, 1, left_right_type, nb_left, bogus_message_tag, cartesian_comm, &mpi_status);
             if (mpi_status.MPI_ERROR != MPI_SUCCESS)
             {
                 printf("ERROR: could not receive left neighbor column on rank %d\n", my_rank);
                 return 1;
             }
+
+            //neighbor right
+            MPI_Send(A + my_right_column_index, 1, left_right_type, nb_right, bogus_message_tag, cartesian_comm);
+            MPI_Recv(A + right_nb_index, 1, left_right_type, nb_right, bogus_message_tag, cartesian_comm, &mpi_status);
+            if (mpi_status.MPI_ERROR != MPI_SUCCESS)
+            {
+                printf("ERROR: could not receive right neighbor column on rank %d\n", my_rank);
+                return 1;
+            }
+        }
+        else
+        {
+            //neighbor right
+            // printf("%d: receiving from right neighbor %d\n", my_rank, nb_right);
+            MPI_Recv(A + right_nb_index, 1, left_right_type, nb_right, bogus_message_tag, cartesian_comm, &mpi_status);
+            if (mpi_status.MPI_ERROR != MPI_SUCCESS)
+            {
+                printf("ERROR: could not receive right neighbor column on rank %d\n", my_rank);
+                return 1;
+            }
+            MPI_Send(A + my_right_column_index, 1, left_right_type, nb_right, bogus_message_tag, cartesian_comm);
+
+            //neighbor left
+            MPI_Recv(A + left_nb_index, 1, left_right_type, nb_left, bogus_message_tag, cartesian_comm, &mpi_status);
+            if (mpi_status.MPI_ERROR != MPI_SUCCESS)
+            {
+                printf("ERROR: could not receive left neighbor column on rank %d\n", my_rank);
+                return 1;
+            }
+            MPI_Send(A + my_left_column_index, 1, left_right_type, nb_left, bogus_message_tag, cartesian_comm);
         }
 #pragma endregion
 #pragma endregion

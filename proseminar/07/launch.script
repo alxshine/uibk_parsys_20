@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#$ -q std.q
+#$ -cwd
+#$ -N hybrid_stencil
+#$ -o stencil.log
+#$ -j yes
+#$ -pe openmpi-8perhost 16
+
+#$ -M alexander.schloegl@uibk.ac.at
+
+module load openmpi/3.1.1
+mpiexec -n 2 --map-by node ./stencil_mpi 

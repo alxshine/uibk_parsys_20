@@ -13,27 +13,29 @@ int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
 
-    int N = 4000;
-    if (argc > 1)
-        N = atoi(argv[1]);
-    int multi_thread = 0;
-    if (argc > 2)
-        multi_thread = 1;
-    const int S = N * N;
-    const int T = 100;
-
     int dim_y = 4;
     int dim_x = 2;
+
+    if (argc == 2)
+    {
+        fprintf(stderr, "Usage: %s dim_y dim_x\n", argv[0]);
+        return 1;
+    }
+    if (argc > 2)
+    {
+        dim_y = atoi(argv[1]);
+        dim_x = atoi(argv[2]);
+    }
+
+    const int N = 4000;
+    const int S = N * N;
+    const int T = 100;
 
     MPI_Status mpi_status;
 
     MPI_Comm cartesian_comm;
-    int dims[] = {1, 1};
-    if (multi_thread)
-    {
-        dims[0] = dim_y;
-        dims[1] = dim_x;
-    }
+    int dims[] = {dim_y, dim_x};
+
     const int periods[] = {1, 1}; // enable periodicity
     if (MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 1, &cartesian_comm))
     {
@@ -61,19 +63,10 @@ int main(int argc, char **argv)
     Vector B = (Vector)malloc(sizeof(value_t) * S);
 
     // prepare send and receive
-    int chunk_size_x, chunk_size_y, my_row, my_col;
-    if (multi_thread)
-    {
-        chunk_size_x = N / dim_x;
-        chunk_size_y = N / dim_y;
-        my_row = my_rank / dim_x;
-        my_col = my_rank % dim_x;
-    }
-    else
-    {
-        chunk_size_x = chunk_size_y = N;
-        my_row = my_col = 0;
-    }
+    int chunk_size_x = N / dim_x;
+    int chunk_size_y = N / dim_y;
+    int my_row = my_rank / dim_x;
+    int my_col = my_rank % dim_x;
 
     // sending top and bottom border is easy
     MPI_Datatype top_bottom_type;
@@ -107,7 +100,7 @@ int main(int argc, char **argv)
     // }
 
     if (!my_rank)
-        printf("Dims: %d*%d, chunk_size=%dx%d, %d threads\n\n", N, N, chunk_size_y, chunk_size_x, multi_thread ? 8 : 1);
+        printf("Dims: %d*%d, chunk_size=%dx%d, %d threads\n\n", N, N, chunk_size_y, chunk_size_x, dim_y * dim_x);
     // printf("%d: nb_up=%d, nb_down=%d, nb_left=%d, nb_right=%d\n", my_rank, nb_up, nb_down, nb_left, nb_right);
 
     int my_top_row_index = my_row * chunk_size_y * N + my_col * chunk_size_x;
@@ -282,16 +275,13 @@ int main(int argc, char **argv)
 
     if (!my_rank)
     {
-        if (multi_thread)
+        for (int i = 1; i < 8; ++i)
         {
-            for (int i = 1; i < 8; ++i)
-            {
-                int current_row = i / 2;
-                int current_col = i % 2;
-                int current_start = current_row * chunk_size_y * N + current_col * chunk_size_x;
+            int current_row = i / 2;
+            int current_col = i % 2;
+            int current_start = current_row * chunk_size_y * N + current_col * chunk_size_x;
 
-                MPI_Recv(A + current_start, 1, full_chunk_type, i, 0, cartesian_comm, MPI_STATUS_IGNORE);
-            }
+            MPI_Recv(A + current_start, 1, full_chunk_type, i, 0, cartesian_comm, MPI_STATUS_IGNORE);
         }
 
         int success = is_valid(A, N, source_x, source_y);

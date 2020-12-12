@@ -7,7 +7,7 @@ stencil_mpi: mpi_stencil_2d.c base.c
 
 .PHONY: run, launch, clean
 run: stencil_mpi
-	mpirun -n 8 --oversubscribe $< 4000 8
+	mpirun -n 8 --oversubscribe $< 4 2
 
 launch: stencil_mpi
 	rm -f *.log

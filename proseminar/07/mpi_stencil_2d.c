@@ -187,7 +187,9 @@ int main(int argc, char **argv)
             }
             MPI_Send(A + my_top_row_index, 1, top_bottom_type, nb_up, bogus_message_tag, cartesian_comm);
         }
+#pragma endregion
 
+#pragma region left right
         // same for columns
         if (my_col % 2 == 0)
         {

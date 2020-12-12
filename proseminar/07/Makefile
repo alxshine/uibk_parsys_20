@@ -1,8 +1,11 @@
 flags=-O2 -std=c99
 
-all: stencil_mpi
+all: stencil_mpi hybrid_stencil
 
 stencil_mpi: mpi_stencil_2d.c base.c
+	mpicc ${flags} $^ -fopenmp -o $@
+
+hybrid_stencil: mpi_omp_hybrid.c base.c
 	mpicc ${flags} $^ -fopenmp -o $@
 
 .PHONY: run, launch, clean

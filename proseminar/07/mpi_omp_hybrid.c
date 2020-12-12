@@ -232,6 +232,7 @@ int main(int argc, char **argv)
 #pragma endregion
 #pragma endregion
 
+#pragma omp parallel for
         for (size_t i = my_row * chunk_size_y; i < (my_row + 1) * chunk_size_y; ++i)
         {
             size_t y_above = i != 0 ? i - 1 : 0;

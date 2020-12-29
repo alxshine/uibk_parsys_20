@@ -7,10 +7,10 @@ The goal of this assignment is to implement and optimize two types of dwarfs usi
 ### Tasks
 
 - Use OpenMP to develop a parallel matrix multiplication program. In order to facilitate verification:
-    - initialize matrix A with `a(i,j) = i * j`,
-    - make matrix B the identity matrix (`b(i,j) = (i == j) ? 1 : 0`), 
-    - use `double` as the element type, and 
-    - only consider the actual matrix multiplication for your time measurements, not the initialization or any verification.
+  - initialize matrix A with `a(i,j) = i * j`,
+  - make matrix B the identity matrix (`b(i,j) = (i == j) ? 1 : 0`),
+  - use `double` as the element type, and
+  - only consider the actual matrix multiplication for your time measurements, not the initialization or any verification.
 - Measure the execution time of your OpenMP program for several matrix sizes and for 1 and 8 threads.
 - Illustrate the data in appropriate speedup/efficiency figures and discuss them. What can you observe?
 - Try to maximize the performance by considering all sequential and parallelism-related optimizations we discussed so far. Which did you choose and why?
@@ -37,4 +37,4 @@ All the material required by the tasks above (e.g. code, figures, etc...) must b
 **Every** member of your group must be able to explain the given problem, your solution, and possible findings. You may also need to answer detailed questions about any of these aspects.
 
 **Please run any benchmarks or heavy CPU loads only on the compute nodes, not on the login node.**
-If you want to do some interactive experimentation, use an *interactive job* as outlined in the tutorial. Make sure to stop any interactive jobs once you are done.
+If you want to do some interactive experimentation, use an _interactive job_ as outlined in the tutorial. Make sure to stop any interactive jobs once you are done.

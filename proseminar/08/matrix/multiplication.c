@@ -4,25 +4,49 @@
 
 typedef double *Matrix;
 
-void multiply_matrices(const Matrix lh, const Matrix rh, Matrix result, unsigned int height, unsigned int width)
+void dump_matrix(Matrix m, unsigned int n)
 {
-    for (unsigned int i = 0; i < height; ++i)
+    for (unsigned int i = 0; i < n; ++i)
     {
-        for (unsigned int j = 0; j < width; ++j)
+        for (unsigned int j = 0; j < n; ++j)
         {
-            result[i * width + j] = 0;
-
-            for (unsigned int k = 0; k < height; ++k)
-            {
-                result[i * width + j] += lh[i * width + k] * rh[k * width + j];
-            }
+            printf("%lf, ", m[i * n + j]);
         }
+        printf("\n");
     }
 }
 
-int verify_matrices_identical(Matrix a, Matrix b, unsigned int height, unsigned int width)
+void multiply_matrices(const Matrix lh, const Matrix rh, Matrix result, unsigned int n)
 {
-    for (unsigned int i = 0; i < height * width; i++)
+    Matrix rh_transposed = malloc(n * n * sizeof(double));
+#pragma omp parallel for collapse(2)
+    for (int i = 0; i < n; ++i)
+    {
+        for (int j = 0; j < n; ++j)
+        {
+            rh_transposed[i * n + j] = rh[i * n + j];
+            result[i * n + j] = 0;
+        }
+    }
+
+#pragma omp parallel for collapse(2)
+    for (unsigned int i = 0; i < n; ++i)
+    {
+        for (unsigned int j = 0; j < n; ++j)
+        {
+            for (unsigned int k = 0; k < n; ++k)
+            {
+                result[i * n + j] += lh[i * n + k] *
+                                     rh_transposed[j * n + k];
+            }
+        }
+    }
+    free(rh_transposed);
+}
+
+int verify_matrices_identical(Matrix a, Matrix b, unsigned int n)
+{
+    for (unsigned int i = 0; i < n * n; i++)
     {
         if (a[i] != b[i])
             return 0;
@@ -30,21 +54,9 @@ int verify_matrices_identical(Matrix a, Matrix b, unsigned int height, unsigned 
     return 1;
 }
 
-void dump_matrix(Matrix m, int height, int width)
-{
-    for (int i = 0; i < height; ++i)
-    {
-        for (int j = 0; j < width; ++j)
-        {
-            printf("%lf, ", m[i * width + j]);
-        }
-        printf("\n");
-    }
-}
-
 int main(int argc, char **argv)
 {
-    unsigned int N = 10;
+    unsigned int N = 3000;
     if (argc > 1)
         N = atoi(argv[1]);
     size_t binary_size = N * N * sizeof(double);
@@ -73,11 +85,13 @@ int main(int argc, char **argv)
     printf("Success\n");
 
     printf("Multiplying Matrices\n");
-    multiply_matrices(A, B, C, N, N);
+    double before_time = omp_get_wtime();
+    multiply_matrices(A, B, C, N);
+    double after_time = omp_get_wtime();
     printf("Success\n");
 
     printf("Verifying correct result\n");
-    if (verify_matrices_identical(A, C, N, N))
+    if (verify_matrices_identical(A, C, N))
         printf("Success\n");
     else
         printf("ERROR: A != C\n");
@@ -87,5 +101,7 @@ int main(int argc, char **argv)
     free(B);
     free(C);
     printf("Success\n");
+
+    printf("Execution took %lf seconds\n", after_time - before_time);
     return 0;
 }

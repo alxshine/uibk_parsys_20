@@ -15,11 +15,7 @@ struct Queen
 using Configuration = vector<Queen>;
 string getSortedString(Configuration config)
 {
-    // sort by x
-    sort(config.begin(), config.end(), [](const Queen &lhs, const Queen &rhs) { return lhs.x < rhs.x; });
-    // sort by y
-    sort(config.begin(), config.end(), [](const Queen &lhs, const Queen &rhs) { return lhs.y < rhs.y; });
-
+    // configurations are already sorted
     string ret = "";
     for (const Queen &q : config)
     {
@@ -53,6 +49,20 @@ void printConfig(const Configuration &config)
     printf("\n\n");
 }
 
+void insertSorted(Configuration &newConfiguration, Queen &newQueen)
+{
+    Configuration::iterator it;
+    for (it = newConfiguration.begin(); it < newConfiguration.end(); ++it)
+    {
+        if (newQueen.x < it->x)
+            break;
+        if (newQueen.x == it->x && newQueen.y == it->y)
+            break;
+    }
+
+    newConfiguration.insert(it, newQueen);
+}
+
 int getNumSolutions(unsigned char boardSideLength, const Configuration &placedQueens)
 {
     int numPlacedQueens = placedQueens.size();
@@ -70,7 +80,8 @@ int getNumSolutions(unsigned char boardSideLength, const Configuration &placedQu
                 continue;
 
             Configuration newConfiguration(placedQueens);
-            newConfiguration.push_back(newQueen);
+            insertSorted(newConfiguration, newQueen);
+            // newConfiguration.push_back(newQueen);
             string sortedString = getSortedString(newConfiguration);
 
             if (existingConfigurations.count(sortedString) == 0)

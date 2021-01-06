@@ -19,25 +19,40 @@ void dump_matrix(Matrix m, unsigned int n)
 void multiply_matrices(const Matrix lh, const Matrix rh, Matrix result, unsigned int n)
 {
     Matrix rh_transposed = malloc(n * n * sizeof(double));
+    unsigned int block_size = 8; // cache line size is 64 bytes // TODO: find this programatically
+
 #pragma omp parallel for collapse(2)
-    for (int i = 0; i < n; ++i)
+    for (unsigned int ii = 0; ii < n; ii += block_size)
     {
-        for (int j = 0; j < n; ++j)
+        for (unsigned int jj = 0; jj < n; jj += block_size)
         {
-            rh_transposed[i * n + j] = rh[i * n + j];
-            result[i * n + j] = 0;
+            for (unsigned int i = ii; i < ii + block_size; ++i)
+            {
+                for (unsigned int j = jj; j < jj + block_size; ++j)
+                {
+                    rh_transposed[i * n + j] = rh[i * n + j];
+                    result[i * n + j] = 0;
+                }
+            }
         }
     }
 
 #pragma omp parallel for collapse(2)
-    for (unsigned int i = 0; i < n; ++i)
+    for (unsigned int ii = 0; ii < n; ii += block_size)
     {
-        for (unsigned int j = 0; j < n; ++j)
+        for (unsigned int jj = 0; jj < n; jj += block_size)
         {
-            for (unsigned int k = 0; k < n; ++k)
+            for (unsigned int i = ii; i < ii + block_size; ++i)
             {
-                result[i * n + j] += lh[i * n + k] *
-                                     rh_transposed[j * n + k];
+                for (unsigned int j = jj; j < jj + block_size; ++j)
+                {
+#pragma omp simd
+                    for (unsigned int k = 0; k < n; ++k)
+                    {
+                        result[i * n + j] += lh[i * n + k] *
+                                             rh_transposed[j * n + k];
+                    }
+                }
             }
         }
     }

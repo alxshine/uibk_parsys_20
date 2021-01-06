@@ -40,17 +40,19 @@ int getNumPossibleConfigurations(index_t boardSize, Queen *currentConfiguration,
         return 1;
 
     int ret = 0;
-#pragma omp taskloop firstprivate(currentConfiguration) shared(ret)
     for (index_t y = 0; y < boardSize; y++)
     {
+#pragma omp task firstprivate(currentConfiguration) shared(ret)
+      {
         Queen candidateQueen = {numPlacedQueens, y};
         if (!isThreatened(currentConfiguration, numPlacedQueens, candidateQueen))
         {
-            Queen newConfiguration[numPlacedQueens + 1];
-            memcpy(newConfiguration, currentConfiguration, numPlacedQueens * sizeof(Queen));
-            newConfiguration[numPlacedQueens] = candidateQueen;
-            ret += getNumPossibleConfigurations(boardSize, newConfiguration, numPlacedQueens + 1);
+          Queen newConfiguration[numPlacedQueens + 1];
+          memcpy(newConfiguration, currentConfiguration, numPlacedQueens * sizeof(Queen));
+          newConfiguration[numPlacedQueens] = candidateQueen;
+          ret += getNumPossibleConfigurations(boardSize, newConfiguration, numPlacedQueens + 1);
         }
+      }
     }
 #pragma omp taskwait
     return ret;

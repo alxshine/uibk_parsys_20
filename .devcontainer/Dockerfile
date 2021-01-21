@@ -2,10 +2,9 @@
 #
 # this is a modernized version of https://github.com/oweidner/docker.openmpi
 
-FROM ubuntu:20.04
+FROM chapel/chapel
 
-ARG DEBIAN_FRONTEND=noninteractive
-ENV TZ=Europe/Amsterdam
+# timezone already set in chapel Dockerfile
 
 RUN apt-get update -y && \
     # apt-get install -y --no-install-recommends sudo apt-utils && \

@@ -5,6 +5,7 @@
     },
 	"containerUser": "dev",
 	"extensions": [
-		"ms-vscode.cpptools"
+		"ms-vscode.cpptools",
+		"frumbasjt.chapel"
 	]
 }

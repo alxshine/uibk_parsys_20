@@ -7,15 +7,14 @@ config const numRuns = 1e9:int;
 
 var timer:Timer;
 
+var randStream = new RandomStream(real);
+
 timer.start();
 
-var xs: [1..numRuns] real;
-var ys: [1..numRuns] real;
-fillRandom(xs);
-fillRandom(ys);
-
 var inside = 0;
-forall (x,y) in zip(xs,ys) with (+ reduce inside) {
+forall i in 1..numRuns with (+ reduce inside) {
+    var x = randStream.getNext();
+    var y = randStream.getNext();
     var r = sqrt(x*x+y*y);
     if (r < 1){
         inside+=1;

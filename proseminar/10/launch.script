@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#$ -q std.q
+#$ -cwd
+#$ -N chapel
+#$ -o chapel.log
+#$ -j yes
+#$ -pe openmp 8
+
+#$ -M alexander.schloegl@uibk.ac.at
+./pi
+./matrix

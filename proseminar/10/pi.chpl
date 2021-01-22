@@ -15,8 +15,7 @@ var inside = 0;
 forall i in 1..numRuns with (+ reduce inside) {
     var x = randStream.getNext();
     var y = randStream.getNext();
-    var r = sqrt(x*x+y*y);
-    if (r < 1){
+    if (x*x+y*y < 1){
         inside+=1;
     }
 }

@@ -3,20 +3,23 @@ use Math;
 use Time;
 
 config const numRuns = 1e9:int;
+config const numThreads = 8:int;
 
-
+const runsPerThread = numRuns/numThreads;
 var timer:Timer;
-
 var randStream = new RandomStream(real);
 
 timer.start();
 
 var inside = 0;
-forall i in 1..numRuns with (+ reduce inside) {
-    var x = randStream.getNext();
-    var y = randStream.getNext();
-    if (x*x+y*y < 1){
-        inside+=1;
+coforall i in 1..numThreads with (+ reduce inside) {
+    var xs: [1..runsPerThread] real;
+    randStream.fillRandom(xs);
+    var ys: [1..runsPerThread] real;
+    randStream.fillRandom(ys);
+
+    for (x,y) in zip(xs,ys){
+        inside += (x*x+y*y < 1):int;
     }
 }
 

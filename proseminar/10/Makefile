@@ -11,4 +11,4 @@ matrix: matrix.chpl
 
 .PHONY: clean
 clean:
-	rm -f pi matrix *.log
+	rm -f pi matrix *-multinode *_real *.log

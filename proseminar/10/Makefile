@@ -1,4 +1,4 @@
-all: pi matrix matrix-multinode
+all: pi matrix matrix-multinode pi-multinode
 
 %-multinode: %-multinode.chpl
 	chpl $^

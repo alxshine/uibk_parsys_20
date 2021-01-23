@@ -2,9 +2,6 @@ use Random;
 use Time;
 
 config const N = 2552;
-config const numThreads = 8;
-const sliceSize = N/numThreads;
-// writeln("Slice size is ", sliceSize);
 
 var A: [1..N,1..N] int;
 var B: [1..N,1..N] int;
@@ -23,8 +20,8 @@ forall (i,j) in A.domain{
 var timer: Timer;
 
 timer.start();
-forall (i,j) in C.domain {
-    for k in 1..N {
+forall (i,j) in C.domain{
+    for k in 1..N{
         C(i,j) += A(i,k) * B(k,j);
     }
 }

@@ -8,4 +8,4 @@ matrix: matrix.chpl
 
 .PHONY: clean
 clean:
-	rm -f pi matrix
+	rm -f pi matrix *.log

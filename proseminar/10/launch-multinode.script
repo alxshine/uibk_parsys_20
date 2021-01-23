@@ -5,5 +5,5 @@
 #$ -j yes
 
 #$ -M alexander.schloegl@uibk.ac.at
-./pi-multinode
-./matrix-multinode
+./pi-multinode_real -nl $LOCALES
+./matrix-multinode_real -nl $LOCALES

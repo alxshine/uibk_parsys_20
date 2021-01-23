@@ -5,5 +5,5 @@
 #$ -j yes
 
 #$ -M alexander.schloegl@uibk.ac.at
-./pi
-./matrix
+./pi_real
+./matrix_real

@@ -23,15 +23,9 @@ forall (i,j) in A.domain{
 var timer: Timer;
 
 timer.start();
-coforall t in 0..numThreads-1{
-    // writeln("This is thread ", t, " working on rows ", t*sliceSize, " up to ", (t+1)*sliceSize-1);
-    for i in (t*sliceSize+1)..((t+1)*sliceSize){
-        for j in 1..N{
-            for k in 1..N{
-                // writeln("i: ", i, ", j: ", j, ", k: ", k);
-                C(i,j) += A(i,k) * B(k,j);
-            }
-        }
+forall (i,j) in C.domain {
+    for k in 1..N {
+        C(i,j) += A(i,k) * B(k,j);
     }
 }
 timer.stop();

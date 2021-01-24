@@ -6,7 +6,7 @@ do
   for bin in {"pi","matrix"}
   do
     qsub -j y -q std.q -cwd -pe openmpi-8perhost $num_cpus -N $bin-m$p -o ${bin}-multinode-${p}.log << EOF
-`pwd`/${bin}_real -nl $p
+`pwd`/${bin}-multinode_real -nl $p
 EOF
   done
 done

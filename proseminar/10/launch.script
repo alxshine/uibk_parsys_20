@@ -1,9 +1,0 @@
-#!/bin/bash
-
-#$ -q std.q
-#$ -cwd
-#$ -j yes
-
-#$ -M alexander.schloegl@uibk.ac.at
-./pi_real
-./matrix_real

@@ -1,9 +1,0 @@
-#!/bin/bash
-
-#$ -q std.q
-#$ -cwd
-#$ -j yes
-
-#$ -M alexander.schloegl@uibk.ac.at
-./pi-multinode_real -nl $LOCALES
-./matrix-multinode_real -nl $LOCALES

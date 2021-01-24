@@ -31,8 +31,8 @@ coforall loc in Locales {
         writeln("Running on ", here.id, ", calculating rows ", firstLocaleRow, " up to ", lastRow);
 
         coforall p in 1..numPUs {
-          var firstRow = firstLocaleRow + (p-1)*rowsPerPU + 1;
-          var lastRow = firstLocaleRow + p*rowsPerPU;
+          var firstRow = firstLocaleRow + (p-1)*rowsPerPU; // we already have the +1 offset from firstLocaleRow
+          var lastRow = firstLocaleRow + p*rowsPerPU - 1;
           writeln("First row", firstRow, " last row", lastRow);
           for (i,j) in {firstRow..lastRow,1..N} {
               for k in 1..N {

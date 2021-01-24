@@ -5,8 +5,8 @@ do
   let num_cpus=$p*8
   for bin in {"pi","matrix"}
   do
-    echo "qsub -j y -q std.q -cwd -pe openmpi-8perhost $num_cpus -N $bin-m$p -o ${bin}-multinode-${p}.log << EOF
+    qsub -j y -q std.q -cwd -pe openmpi-8perhost $num_cpus -N $bin-m$p -o ${bin}-multinode-${p}.log << EOF
 `pwd`/${bin}-multinode -nl $p
-EOF"
+EOF
   done
 done

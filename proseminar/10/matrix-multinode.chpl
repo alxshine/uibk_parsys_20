@@ -2,6 +2,7 @@ use Random;
 use Time;
 
 config const N = 2552;
+config const numPUs = 8;
 
 var A: [1..N,1..N] int;
 var B: [1..N,1..N] int;
@@ -18,20 +19,26 @@ forall (i,j) in A.domain{
 }
 
 var rowsPerLocale = N/numLocales;
+var rowsPerPU = rowsPerLocale/numPUs;
 writeln("Running on ", numLocales, " locale, calculating ", rowsPerLocale, " rows per locale");
 var timer: Timer;
 
 timer.start();
-for loc in Locales {
+coforall loc in Locales {
     on loc {
-        var firstRow = here.id*rowsPerLocale+1;
+        var firstLocaleRow = here.id*rowsPerLocale+1;
         var lastRow = (here.id+1)*rowsPerLocale;
-        writeln("Running on ", here.id, ", calculating rows ", firstRow, " up to ", lastRow);
+        writeln("Running on ", here.id, ", calculating rows ", firstLocaleRow, " up to ", lastRow);
 
-        forall (i,j) in {firstRow..lastRow,1..N} {
-            for k in 1..N {
-                C(i,j) += A(i,k) * B(k,j);
-            }
+        coforall p in 1..numPUs {
+          var firstRow = firstLocaleRow + (p-1)*rowsPerPU + 1;
+          var lastRow = firstLocaleRow + p*rowsPerPU;
+          writeln("First row", firstRow, " last row", lastRow);
+          for (i,j) in {firstRow..lastRow,1..N} {
+              for k in 1..N {
+                  C(i,j) += A(i,k) * B(k,j);
+              }
+          }
         }
     }
 }
